@@ -1,0 +1,4 @@
+* mediainfo-mode
+  ~mediainfo-mode-setup~
+
+  This repo was brutally inspired by [[https://github.com/sirikid/elf-mode][elf-mode]]
