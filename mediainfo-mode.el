@@ -37,7 +37,7 @@
 
 (defvar mediainfo-mode--font-lock-defaults
   `(;; Sections
-    (,(rx bol (+ (not ":")) eol) . font-lock-function-name-face)
+    (,(rx bol (+ (not (any ":" "\n"))) eol) . font-lock-function-name-face)
 
     ;; Fields
     (,(rx bol (group (+? any)) (+ space) ":") . (1 font-lock-variable-name-face))
@@ -46,6 +46,11 @@
     (,(rx bol (+? any) (+ space) ": " (group (*? any)) eol)
      . (1 font-lock-constant-face)))
   "`MEDIAINFO-MODE' font-lock defaults.")
+
+(defvar mediainfo-mode--imenu-generic-expression
+  `(("Sections" ,(rx bol (+ (not (any ":" "\n"))) eol) 0)
+    ("Fields" ,(rx bol (group (+? any)) (+ space) ":") 1))
+  "Generic `MEDIAINFO-MODE' expression for imenu.")
 
 
 ;;;; CUSTOM
@@ -112,6 +117,7 @@ Apply `INSERT-FILE-CONTENTS' `OPERATION' on `ARGS'."
 ;;;###autoload
 (define-derived-mode mediainfo-mode special-mode "Mediainfo"
   (setq-local font-lock-defaults '(mediainfo-mode--font-lock-defaults))
+  (setq-local imenu-generic-expression mediainfo-mode--imenu-generic-expression)
   (read-only-mode))
 
 ;;;###autoload
