@@ -35,15 +35,39 @@
 
 ;;;; VARIABLES
 
-(defvar mediainfo-mode-command "mediainfo %s"
-  "The shell command to use for `mediainfo-mode'.")
+(defvar mediainfo-mode--font-lock-defaultsq
+  `(;; Sections
+    (,(rx bol (+ (not ":")) eol) . font-lock-function-name-face)
 
-(defvar mediainfo-mode-file-regexp
+    ;; Fields
+    (,(rx bol (group (+? any)) (+ space) ":") . (1 font-lock-variable-name-face))
+
+    ;; Names
+    (,(rx bol (+? any) (+ space) ": " (group (*? any)) eol)
+     . (1 font-lock-constant-face)))
+  "`MEDIAINFO-MODE' font-lock defaults.")
+
+
+;;;; CUSTOM
+
+(defgroup mediainfo-mode nil
+  "View mediainfo files"
+  :group nil)
+
+(defcustom mediainfo-mode-command
+  "mediainfo %s"
+  "The shell command to use for `mediainfo-mode'."
+  :type 'string
+  :group 'mediainfo-mode)
+
+(defcustom mediainfo-mode-file-regexp
   (rx "."
-      (or "flac" "m4a" "mp3" "ogg" "opus" "webm" "mkv" "mp4" "avi" "mpg" "mov"
-          "3gp" "vob" "wmv" "aiff" "wav")
-      eos)
-  "A regexp used to distinguish mediainfo-supported files.")
+    (or "flac" "m4a" "mp3" "ogg" "opus" "webm" "mkv" "mp4" "avi" "mpg" "mov"
+        "3gp" "vob" "wmv" "aiff" "wav")
+    eos)
+  "A regexp used to distinguish mediainfo-supported files."
+  :type 'string
+  :group 'mediainfo-mode)
 
 
 ;;;; FUNCTIONS
@@ -87,6 +111,7 @@ Apply `INSERT-FILE-CONTENTS' `OPERATION' on `ARGS'."
 
 ;;;###autoload
 (define-derived-mode mediainfo-mode special-mode "Mediainfo"
+  (setq-local font-lock-defaults '(mediainfo-mode--font-lock-defaults))
   (read-only-mode))
 
 ;;;###autoload

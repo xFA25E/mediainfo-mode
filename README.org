@@ -3,10 +3,10 @@
 
 This repo was brutally inspired by [[https://github.com/sirikid/elf-mode][elf-mode]]
 
-* Todo [0/5]
+* Todo [2/5]
   - [ ] easyview? :: Ask dmitry about easyview, regexps and sections
   - [ ] Thumbnails :: Try to extract thumbnails and show them at top
   - [ ] imenu support :: sections -> functions; fields -> variables; names ->
     values;
-  - [ ] font-locking :: font-lock-function-name-face font-lock-variable-name-face font-lock-constant-face
-  - [ ] custom :: add variables and faces to custom
+  - [X] font-locking :: font-lock-function-name-face font-lock-variable-name-face font-lock-constant-face
+  - [X] custom :: add variables and faces to custom
