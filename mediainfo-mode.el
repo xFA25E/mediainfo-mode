@@ -35,7 +35,7 @@
 
 ;;;; VARIABLES
 
-(defvar mediainfo-mode--font-lock-defaultsq
+(defvar mediainfo-mode--font-lock-defaults
   `(;; Sections
     (,(rx bol (+ (not ":")) eol) . font-lock-function-name-face)
 
