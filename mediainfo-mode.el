@@ -30,6 +30,7 @@
 ;;;; REQUIRES
 
 (require 'rx)
+(require 'cl-lib)
 
 
 ;;;; VARIABLES
