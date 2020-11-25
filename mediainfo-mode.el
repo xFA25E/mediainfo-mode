@@ -125,8 +125,9 @@ Apply `INSERT-FILE-CONTENTS' `OPERATION' on `ARGS'."
 ;;;###autoload
 (define-derived-mode mediainfo-mode special-mode "Mediainfo"
   (setq-local font-lock-defaults '(mediainfo-mode--font-lock-defaults))
-  (setq-local imenu-generic-expression mediainfo-mode--imenu-generic-expression)
-  (read-only-mode))
+  (setq imenu-generic-expression mediainfo-mode--imenu-generic-expression)
+  (read-only-mode)
+  (goto-char (point-min)))
 
 ;;;###autoload
 (defun mediainfo-mode-setup ()
