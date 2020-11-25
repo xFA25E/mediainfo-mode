@@ -1,7 +1,7 @@
-* Mediainfo-Mode
-  ~mediainfo-mode-setup~
+#+title:  Mediainfo-Mode
+~mediainfo-mode-setup~
 
-  This repo was brutally inspired by [[https://github.com/sirikid/elf-mode][elf-mode]]
+This repo was brutally inspired by [[https://github.com/sirikid/elf-mode][elf-mode]]
 
 * Todo [0/5]
   - [ ] easyview? :: Ask dmitry about easyview, regexps and sections
