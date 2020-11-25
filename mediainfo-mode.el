@@ -1,22 +1,26 @@
-;;; mediainfo-mode.el --- Show mediainfo data when opening media file in Emacs  -*- lexical-binding: t; -*-
+;;; mediainfo-mode.el --- Show mediainfo data when opening media file -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2020  Valeriy Litkovskyy
 
-;; Author: Valeriy Litkovskyy <>
-;; Keywords: matching
+;; Author: Valeriy Litkovskyy
+;; Keywords: multimedia
+;; Version: 0.1.0
+;; URL: https://github.com/xFA25E/mediainfo-mode
+;; Package-Requires: ((emacs "24.3"))
 
-;; This program is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation, either version 3 of the License, or
-;; (at your option) any later version.
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
 
-;; This program is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
+;; This program is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+;; along with this program.  If not, see
+;; <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -31,17 +35,20 @@
 
 (require 'rx)
 (require 'cl-lib)
+(require 'font-lock)
+(require 'simple)
+(require 'imenu)
 
 
 ;;;; VARIABLES
 
 (defvar mediainfo-mode--font-lock-defaults
   `(;; Sections
-    (,(rx bol (+ (not (any ":" "\n"))) eol) . font-lock-function-name-face)
-
+    (,(rx bol (+ (not (any ":" "\n"))) eol)
+     . font-lock-function-name-face)
     ;; Fields
-    (,(rx bol (group (+? any)) (+ space) ":") . (1 font-lock-variable-name-face))
-
+    (,(rx bol (group (+? any)) (+ space) ":")
+     . (1 font-lock-variable-name-face))
     ;; Names
     (,(rx bol (+? any) (+ space) ": " (group (*? any)) eol)
      . (1 font-lock-constant-face)))
@@ -57,7 +64,7 @@
 
 (defgroup mediainfo-mode nil
   "View mediainfo files"
-  :group nil)
+  :group 'applications)
 
 (defcustom mediainfo-mode-command
   "mediainfo %s"
@@ -67,9 +74,9 @@
 
 (defcustom mediainfo-mode-file-regexp
   (rx "."
-    (or "flac" "m4a" "mp3" "ogg" "opus" "webm" "mkv" "mp4" "avi" "mpg" "mov"
-        "3gp" "vob" "wmv" "aiff" "wav")
-    eos)
+      (or "flac" "m4a" "mp3" "ogg" "opus" "webm" "mkv" "mp4" "avi"
+          "mpg" "mov" "3gp" "vob" "wmv" "aiff" "wav")
+      eos)
   "A regexp used to distinguish mediainfo-supported files."
   :type 'string
   :group 'mediainfo-mode)
@@ -87,7 +94,8 @@
 Apply `INSERT-FILE-CONTENTS' `OPERATION' on `ARGS'."
   (cl-case operation
     (insert-file-contents
-     (cl-destructuring-bind (filename &optional visit beg end replace) args
+     (cl-destructuring-bind (filename &optional visit beg end replace)
+         args
        (when (or beg end)
          (error "Beginning and end does not make sense for mediainfo"))
        (when (and visit (/= 0 (buffer-size)) (not replace))
@@ -122,7 +130,7 @@ Apply `INSERT-FILE-CONTENTS' `OPERATION' on `ARGS'."
 
 ;;;###autoload
 (defun mediainfo-mode-setup ()
-  "Make `mediainfo-mode' get called automatically for mediainfo files."
+  "Initialize `mediainfo-mode'."
   (interactive)
 
   (add-to-list
