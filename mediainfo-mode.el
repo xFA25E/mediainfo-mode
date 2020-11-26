@@ -119,6 +119,8 @@ Apply `INSERT-FILE-CONTENTS' `OPERATION' on `ARGS'."
            (inhibit-file-name-operation operation))
        (apply operation args)))))
 
+;;; It is very sad, but `mediainfo' does not provide information about
+;;; stream with thumbnail. Thats way I use ffmpeg for these purpose.
 (defun mediainfo-mode--get-ffmpeg-info (file)
   "Get information about `FILE' from ffmpeg."
   (string-trim
