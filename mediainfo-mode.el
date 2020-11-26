@@ -119,6 +119,45 @@ Apply `INSERT-FILE-CONTENTS' `OPERATION' on `ARGS'."
            (inhibit-file-name-operation operation))
        (apply operation args)))))
 
+;;; It is very sad, but `mediainfo' does not provide information about
+;;; stream with thumbnail. Thats way I use ffmpeg for these purpose.
+(defun mediainfo-mode--get-ffmpeg-info (file)
+  "Get information about `FILE' from ffmpeg."
+  (string-trim
+   (shell-command-to-string (format "ffmpeg -i %s" file))))
+
+(defun mediainfo-mode--own-thumbnail-p (file)
+  "Check if `FILE' already have buit-in thumbnail."
+  ;;; Usually stream with thumbnail have this property
+  ;;; TODO Find common pattern for all streams with thumbnail
+  (s-contains? "Video: mjpeg (Baseline)"
+               (mediainfo-mode--get-ffmpeg-info file)))
+
+(defun mediainfo-mode--get-own-thumbnail (file output)
+  "Get built-in thumbnail `FILE' from STREAM to `OUTPUT'."
+  (call-process-shell-command
+   (format "ffmpeg -i %s -map 0:%s -c copy %s"
+           file
+           ;;; 2 is a Stream from ffmpeg info
+           ;;; TODO Add autodetect stream with thumbnail, not hardcode
+           2
+           output) nil 0)
+  output)
+
+(defun mediainfo-mode--get-middle-time (file)
+  "Get middle in time of the `FILE'."
+  (string-trim
+   (shell-command-to-string
+    (format "ffmpeg -i %s 2>&1 | grep Duration | awk '{print $2}' | tr -d , | awk -F ':' '{print ($3+$2*60+$1*3600)/2}'"
+            file))))
+
+(defun mediainfo-mode--get-thumbnail-from-middle (file output)
+  "Save thumbnail from middle of `FILE' if it's video to `OUTPUT'."
+  (call-process-shell-command
+    (format "ffmpeg -ss %s -i %s -vframes 1 -vcodec png %s"
+            (mediainfo-mode--get-middle-time file) file output) nil 0)
+  output)
+
 
 ;;;; COMMANDS
 
@@ -128,6 +167,24 @@ Apply `INSERT-FILE-CONTENTS' `OPERATION' on `ARGS'."
   (setq imenu-generic-expression mediainfo-mode--imenu-generic-expression)
   (read-only-mode)
   (goto-char (point-min)))
+
+
+;;; It's very trash code, but it works!
+;;; TODO Get sha sum entierly from file, not from filename
+;;; TODO Add custom folder for cache thumbnail in defcustom
+;;; TODO Extend this logic for audio file's too
+;;;###autoload
+(defun mediainfo-mode-get-thumbnail (file)
+  "Return image object from given media `FILE'."
+  (let ((output (concat "~/" (md5 file) ".png")))
+        (create-image (if (mediainfo-mode--own-thumbnail-p file)
+                          (mediainfo-mode--get-own-thumbnail file output)
+                        (mediainfo-mode--get-thumbnail-from-middle file output))
+                      ;;; image type (auto detect from first bytes)
+                      nil
+                      ;;; image data (hz chto eto)
+                      nil
+                      :scale 0.2)))
 
 ;;;###autoload
 (defun mediainfo-mode-setup ()
