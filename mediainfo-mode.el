@@ -4,9 +4,9 @@
 
 ;; Author: Valeriy Litkovskyy
 ;; Keywords: multimedia
-;; Version: 0.1.0
+;; Version: 0.2.0
 ;; URL: https://github.com/xFA25E/mediainfo-mode
-;; Package-Requires: ((emacs "24.3"))
+;; Package-Requires: ((emacs "26.1"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -26,7 +26,9 @@
 
 ;; Show mediainfo data when opening media file in Emacs
 ;;
-;; Call `MEDIAINFO-MODE-SETUP'.
+;; Call mediainfo-mode-setup.
+;;
+;; Features: imenu, thumbnails
 
 ;;; Code:
 
@@ -37,6 +39,8 @@
 (require 'cl-lib)
 (require 'font-lock)
 (require 'simple)
+(require 'image)
+(require 'xdg)
 (require 'imenu)
 
 
@@ -62,7 +66,7 @@
 
 ;;;; CUSTOM
 
-(defgroup mediainfo-mode nil
+(defgroup mediainfo nil
   "View mediainfo files"
   :group 'applications)
 
@@ -70,7 +74,7 @@
   "mediainfo %s"
   "The shell command to use for `mediainfo-mode'."
   :type 'string
-  :group 'mediainfo-mode)
+  :group 'mediainfo)
 
 (defcustom mediainfo-mode-file-regexp
   (rx "."
@@ -79,7 +83,13 @@
       eos)
   "A regexp used to distinguish mediainfo-supported files."
   :type 'string
-  :group 'mediainfo-mode)
+  :group 'mediainfo)
+
+(defcustom mediainfo-mode-thumbnail-cache-directory
+  (expand-file-name "emacs/mediainfo-thumbnails" (xdg-cache-home))
+  "Cache directory used to store generated thumbnails for media files."
+  :type 'string
+  :group 'mediainfo)
 
 
 ;;;; FUNCTIONS
@@ -88,6 +98,14 @@
   "Run medainfo command on `FILENAME' and return a result string."
   (shell-command-to-string
    (format mediainfo-mode-command (shell-quote-argument filename))))
+
+(defun mediainfo-mode--draw (file mediainfo-string)
+  "Insert `FILE's thumbnail and `MEDIAINFO-STRING'."
+  (when-let ((thumbnail (ignore-errors
+                          (mediainfo-mode--get-thumbnail file))))
+    (insert-image thumbnail)
+    (insert "\n"))
+  (insert mediainfo-string))
 
 (defun mediainfo-mode--file-handler (operation &rest args)
   "A special file handler for mediainfo.
@@ -105,8 +123,8 @@ Apply `INSERT-FILE-CONTENTS' `OPERATION' on `ARGS'."
          (if replace
              (let ((inhibit-read-only t))
                (erase-buffer)
-               (insert mediainfo-string))
-           (insert mediainfo-string))
+               (mediainfo-mode--draw filename mediainfo-string))
+           (mediainfo-mode--draw filename mediainfo-string))
          (when visit
            (set-visited-file-name filename)
            (set-visited-file-modtime (current-time)))
@@ -119,72 +137,93 @@ Apply `INSERT-FILE-CONTENTS' `OPERATION' on `ARGS'."
            (inhibit-file-name-operation operation))
        (apply operation args)))))
 
-;;; It is very sad, but `mediainfo' does not provide information about
-;;; stream with thumbnail. Thats way I use ffmpeg for these purpose.
-(defun mediainfo-mode--get-ffmpeg-info (file)
-  "Get information about `FILE' from ffmpeg."
-  (string-trim
-   (shell-command-to-string (format "ffmpeg -i %s" file))))
+;;;;; THUMBNAILS
 
-(defun mediainfo-mode--own-thumbnail-p (file)
-  "Check if `FILE' already have buit-in thumbnail."
-  ;;; Usually stream with thumbnail have this property
-  ;;; TODO Find common pattern for all streams with thumbnail
-  (s-contains? "Video: mjpeg (Baseline)"
-               (mediainfo-mode--get-ffmpeg-info file)))
+(defun mediainfo-mode--thumbnail-cache-path (file)
+  "Get thumbnail cache path for a media `FILE'."
+  (expand-file-name
+   (concat (md5 file) ".png") mediainfo-mode-thumbnail-cache-directory))
 
-(defun mediainfo-mode--get-own-thumbnail (file output)
-  "Get built-in thumbnail `FILE' from STREAM to `OUTPUT'."
-  (call-process-shell-command
-   (format "ffmpeg -i %s -map 0:%s -c copy %s"
-           file
-           ;;; 2 is a Stream from ffmpeg info
-           ;;; TODO Add autodetect stream with thumbnail, not hardcode
-           2
-           output) nil 0)
-  output)
+(defun mediainfo-mode--resize-thumbnail (file)
+  "Resize thumbnail `FILE'."
+  (when (executable-find "convert")
+    (call-process "convert" nil nil nil file "-resize" "x400" file)))
 
-(defun mediainfo-mode--get-middle-time (file)
-  "Get middle in time of the `FILE'."
-  (string-trim
-   (shell-command-to-string
-    (format "ffmpeg -i %s 2>&1 | grep Duration | awk '{print $2}' | tr -d , | awk -F ':' '{print ($3+$2*60+$1*3600)/2}'"
-            file))))
+(defun mediainfo-mode--has-thumbnail-p (file)
+  "Check if `FILE' already have buit-in thumbnail.
+Return thumbnail stream."
+  (ignore-errors
+    (with-temp-buffer
+      (call-process "ffmpeg" nil t nil "-i" file)
+      (goto-char (point-min))
+      (search-forward-regexp
+       (rx "Stream" (+ space) "#"
+           (group (+ num) ":" (+ num))
+           (* (not ":")) ":" (+ space)
+           "Video:" (+ space) "mjpeg"))
+      (match-string 1))))
 
-(defun mediainfo-mode--get-thumbnail-from-middle (file output)
-  "Save thumbnail from middle of `FILE' if it's video to `OUTPUT'."
-  (call-process-shell-command
-    (format "ffmpeg -ss %s -i %s -vframes 1 -vcodec png %s"
-            (mediainfo-mode--get-middle-time file) file output) nil 0)
-  output)
+(defun mediainfo-mode--extract-video-thumbnail (stream file output)
+  "Get built-in thumbnail `FILE' from `STREAM' to `OUTPUT'."
+  (make-directory (file-name-directory output) t)
+  (unless (and (equal 0 (call-process
+                         "ffmpeg" nil nil nil
+                         "-i" file "-map" stream "-c" "copy" output))
+               (file-exists-p output))
+    (error "Ffmpeg failed to extract a video thumbnail"))
+  (mediainfo-mode--resize-thumbnail output))
+
+(defun mediainfo-mode--get-video-duration (file)
+  "Get video duration from `FILE'."
+  (with-temp-buffer
+    (call-process "ffmpeg" nil t nil "-i" file)
+    (goto-char (point-min))
+    (search-forward-regexp
+     (rx "Duration:" (* space) (group (+ num)) ":" (group (+ num)) ":" (group (+ num))))
+    (+ (* 3600 (string-to-number (match-string 1)))
+       (* 60 (string-to-number (match-string 2)))
+       (string-to-number (match-string 3)))))
+
+(defun mediainfo-mode--extract-video-frame-at (time file output)
+  "Save video frame at `TIME' of video `FILE' to `OUTPUT'."
+  (make-directory (file-name-directory output) t)
+  (unless (and (equal 0 (call-process
+                         "ffmpeg" nil nil nil
+                         "-ss" (number-to-string time)
+                         "-i" file
+                         "-vframes" "1" "-vcodec" "png"
+                         output))
+               (file-exists-p output))
+    (error "Ffmpeg failed to extract a video frame"))
+  (mediainfo-mode--resize-thumbnail output))
+
+(defun mediainfo-mode--get-thumbnail (file)
+  "Return image object from given media `FILE'."
+  (unless (and (string-match-p mediainfo-mode-file-regexp file)
+               (file-exists-p file))
+    (error "Not a valid media file"))
+
+  (let* ((file (expand-file-name file))
+         (output (mediainfo-mode--thumbnail-cache-path file)))
+    (if (file-exists-p output)
+        (create-image output)
+      (if-let ((stream (mediainfo-mode--has-thumbnail-p file)))
+          (progn
+            (mediainfo-mode--extract-video-thumbnail stream file output)
+            (create-image output))
+        (let ((duration (mediainfo-mode--get-video-duration file)))
+          (mediainfo-mode--extract-video-frame-at (/ duration 2) file output)
+          (create-image output))))))
 
 
 ;;;; COMMANDS
 
 ;;;###autoload
 (define-derived-mode mediainfo-mode special-mode "Mediainfo"
+  "A mode for showing mediafile contents."
+  (goto-char (point-min))
   (setq-local font-lock-defaults '(mediainfo-mode--font-lock-defaults))
-  (setq imenu-generic-expression mediainfo-mode--imenu-generic-expression)
-  (read-only-mode)
-  (goto-char (point-min)))
-
-
-;;; It's very trash code, but it works!
-;;; TODO Get sha sum entierly from file, not from filename
-;;; TODO Add custom folder for cache thumbnail in defcustom
-;;; TODO Extend this logic for audio file's too
-;;;###autoload
-(defun mediainfo-mode-get-thumbnail (file)
-  "Return image object from given media `FILE'."
-  (let ((output (concat "~/" (md5 file) ".png")))
-        (create-image (if (mediainfo-mode--own-thumbnail-p file)
-                          (mediainfo-mode--get-own-thumbnail file output)
-                        (mediainfo-mode--get-thumbnail-from-middle file output))
-                      ;;; image type (auto detect from first bytes)
-                      nil
-                      ;;; image data (hz chto eto)
-                      nil
-                      :scale 0.2)))
+  (setq imenu-generic-expression mediainfo-mode--imenu-generic-expression))
 
 ;;;###autoload
 (defun mediainfo-mode-setup ()

@@ -1,11 +1,13 @@
 #+title:  Mediainfo-Mode
-~mediainfo-mode-setup~
+Show mediainfo data in emacs. Just call ~mediainfo-mode-setup~.
 
-This repo was brutally inspired by [[https://github.com/sirikid/readelf-mode][readelf-mode]]
+* Features
+  - Imenu :: You can jump to various points in mediainfo buffer
+  - Thumbnails :: Show video and audio thumbnails (resizing requires
+    imagemagick)
 
-* Todo [3/5]
-  - [ ] easyview? :: Ask dmitry about easyview, regexps and sections
-  - [ ] Thumbnails :: Try to extract thumbnails and show them at top
-  - [X] imenu support :: sections -> functions; fields -> variables
-  - [X] font-locking :: font-lock-function-name-face font-lock-variable-name-face font-lock-constant-face
-  - [X] custom :: add variables and faces to custom
+* Contribution
+  Feel free to report bugs, send prs and ask questions
+
+* Inspiration
+  This repo was brutally inspired by [[https://github.com/sirikid/readelf-mode][readelf-mode]]
