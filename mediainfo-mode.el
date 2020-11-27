@@ -82,13 +82,13 @@
           "mpg" "mov" "3gp" "vob" "wmv" "aiff" "wav")
       eos)
   "A regexp used to distinguish mediainfo-supported files."
-  :type 'string
+  :type 'regexp
   :group 'mediainfo)
 
 (defcustom mediainfo-mode-thumbnail-cache-directory
   (expand-file-name "emacs/mediainfo-thumbnails" (xdg-cache-home))
   "Cache directory used to store generated thumbnails for media files."
-  :type 'string
+  :type 'directory
   :group 'mediainfo)
 
 
