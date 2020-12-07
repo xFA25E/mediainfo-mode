@@ -107,6 +107,7 @@
     (insert "\n"))
   (insert mediainfo-string))
 
+;;;###autoload
 (defun mediainfo-mode--file-handler (operation &rest args)
   "A special file handler for mediainfo.
 Apply `INSERT-FILE-CONTENTS' `OPERATION' on `ARGS'."
