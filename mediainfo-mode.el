@@ -91,6 +91,15 @@
   :type 'directory
   :group 'mediainfo)
 
+(defcustom mediainfo-mode-open-method '("mpv" "--force-window=yes" file-name)
+  "Method to open media files.
+Can be a function or a list of strings and symbols.  Function
+must take one argument, which will be a file name.  If it is a
+list, one of the elements can be a symbol file-name.  The whole
+list will be interpreted as a command with arguments."
+  :type '(choice function (repeat (choice string symbol)))
+  :group 'mediainfo)
+
 
 ;;;; FUNCTIONS
 
@@ -216,6 +225,12 @@ Return thumbnail stream."
           (mediainfo-mode--extract-video-frame-at (/ duration 2) file output)
           (create-image output))))))
 
+(defun mediainfo-mode--make-open-command (file-name template)
+  "Make an open command using `FILE-NAME' and `TEMPLATE'.
+`TEMPLATE' must be a list form of `MEDIAINFO-MODE-OPEN-METHOD'."
+  (mapcar (lambda (argument) (if (eq 'file-name argument) file-name argument))
+          template))
+
 
 ;;;; COMMANDS
 
@@ -238,6 +253,28 @@ Return thumbnail stream."
   (add-to-list
    'auto-mode-alist
    (cons mediainfo-mode-file-regexp 'mediainfo-mode)))
+
+(defun mediainfo-mode-open (file-name)
+  "Open `FILE-NAME' using `MEDIAINFO-MODE-OPEN-METHOD'."
+  (interactive (list (buffer-file-name)))
+  (cond ((functionp mediainfo-mode-open-method)
+         (funcall mediainfo-mode-open-method file-name))
+
+        ((listp mediainfo-mode-open-method)
+         (let ((cmd (mediainfo-mode--make-open-command
+                     file-name mediainfo-mode-open-method)))
+           (apply #'start-process "mediainfo open" nil
+                  (car cmd) (cdr cmd))))
+
+        (t (error "Invalid open method"))))
+
+
+;;; BINDS
+
+(define-key mediainfo-mode-map (kbd "o") #'mediainfo-mode-open)
+
+
+;;; PROVIDE
 
 (provide 'mediainfo-mode)
 ;;; mediainfo-mode.el ends here
