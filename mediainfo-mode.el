@@ -28,7 +28,7 @@
 ;;
 ;; Call mediainfo-mode-setup.
 ;;
-;; Features: imenu, thumbnails
+;; Features: imenu, thumbnails, open
 
 ;;; Code:
 

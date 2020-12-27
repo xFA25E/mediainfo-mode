@@ -5,6 +5,8 @@ Show mediainfo data in emacs. Just call ~mediainfo-mode-setup~.
   - Imenu :: You can jump to various points in mediainfo buffer
   - Thumbnails :: Show video and audio thumbnails (resizing requires
     imagemagick)
+  - Open :: You can set ~mediainfo-mode-open-method~ to open media files using
+    *o* key
 
 * Contribution
   Feel free to report bugs, send prs and ask questions
