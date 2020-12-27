@@ -271,7 +271,7 @@ Return thumbnail stream."
 
 ;;; BINDS
 
-(define-key mediainfo-mode-map (kbd "o") #'mediainfo-mode-open)
+(define-key mediainfo-mode-map (kbd "v") #'mediainfo-mode-open)
 
 
 ;;; PROVIDE
