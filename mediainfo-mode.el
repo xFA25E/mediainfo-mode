@@ -47,15 +47,14 @@
 ;;;; VARIABLES
 
 (defvar mediainfo-mode--font-lock-defaults
-  `(;; Sections
-    (,(rx bol (+ (not (any ":" "\n"))) eol)
+  `((,(rx bol (+ (not (any ":" "\n"))) eol)
+     ;; Sections
      . font-lock-function-name-face)
-    ;; Fields
-    (,(rx bol (group (+? any)) (+ space) ":")
-     . (1 font-lock-variable-name-face))
-    ;; Names
-    (,(rx bol (+? any) (+ space) ": " (group (*? any)) eol)
-     . (1 font-lock-constant-face)))
+    (,(rx bol (group (+? any)) (+ space) ":" (group (*? any)) eol)
+     ;; Fields
+     (1 font-lock-variable-name-face)
+     ;; Names
+     (2 font-lock-constant-face)))
   "`MEDIAINFO-MODE' font-lock defaults.")
 
 (defvar mediainfo-mode--imenu-generic-expression
