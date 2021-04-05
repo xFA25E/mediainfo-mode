@@ -241,17 +241,22 @@ Return thumbnail stream."
   (setq imenu-generic-expression mediainfo-mode--imenu-generic-expression))
 
 ;;;###autoload
-(defun mediainfo-mode-setup ()
-  "Initialize `mediainfo-mode'."
-  (interactive)
+(add-to-list
+ 'file-name-handler-alist
+ (cons (rx "." (or "flac" "m4a" "mp3" "ogg" "opus" "webm" "mkv" "mp4" "avi"
+                   "mpg" "mov" "3gp" "vob" "wmv" "aiff" "wav" "ogv" "flv"
+                   "FLAC" "M4A" "MP3" "OGG" "OPUS" "WEBM" "MKV" "MP4" "AVI"
+                   "MPG" "MOV" "3GP" "VOB" "WMV" "AIFF" "WAV" "OGV" "FLV")
+           eos)
+       'mediainfo-mode--file-handler))
 
-  (add-to-list
-   'file-name-handler-alist
-   (cons mediainfo-mode-file-regexp 'mediainfo-mode--file-handler))
-
-  (add-to-list
-   'auto-mode-alist
-   (cons mediainfo-mode-file-regexp 'mediainfo-mode)))
+;;;###autoload
+(add-to-list
+ 'auto-mode-alist
+ (cons (rx "." (or "flac" "m4a" "mp3" "ogg" "opus" "webm" "mkv" "mp4" "avi"
+                   "mpg" "mov" "3gp" "vob" "wmv" "aiff" "wav" "ogv" "flv")
+           eos)
+       'mediainfo-mode))
 
 (defun mediainfo-mode-open (file-name)
   "Open `FILE-NAME' using `MEDIAINFO-MODE-OPEN-METHOD'."
