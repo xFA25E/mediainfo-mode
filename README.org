@@ -1,4 +1,7 @@
 #+title:  Mediainfo-Mode
+
+[[mediainfo-scrot.png]]
+
 Show mediainfo data in emacs.
 
 * Features
